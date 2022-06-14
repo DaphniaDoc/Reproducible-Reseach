@@ -1,0 +1,133 @@
+---
+title: "PersonalMovement"
+author: "D. Cucchiara"
+date: "`r Sys.Date()`"
+output: html_document
+---
+# **Personal Movement Project**
+## Reproducible Research Project 1
+
+Data Loading and Pre-Processing:
+``` {r reading, cache=TRUE}
+rawData <- read.csv("activity.csv", header=TRUE)
+# examine the data set
+head(rawData)
+str(rawData)
+dim(rawData)
+summary(rawData)
+head(rawData)
+```
+Here, we could transform the date to POSIXct class if needed but it seems
+unnecessary.
+
+## What is the mean total number of steps taken per day?
+Calculate the total number of steps taken per day:
+``` {r subset}
+steps <- aggregate(steps ~ date, data = rawData, sum)
+# Create histogram
+hist(steps$steps, main="Total No. of Steps Taken Per Day", xlab="Total No. Steps",
+     ylab="Frequency", col=c("blue2", "cyan1", "darkorchid1", "limegreen", "gold1"))
+```
+Calculate the mean and median:
+``` {r mean}
+# mean
+mean(steps$steps, na.rm=TRUE)
+#median
+median(steps$steps, na.rm=TRUE)
+```
+The mean number of steps taken per day is 10766.19. 
+The median number of steps taken per day is 10765.
+``` {r}
+head(steps)
+```
+
+## What is the average daily activity pattern?
+Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+``` {r}
+# subset the data
+stepsIntrv <- aggregate(steps~interval, data = rawData, mean, na.rm = TRUE)
+#plot the time series
+plot(stepsIntrv$interval, stepsIntrv$steps, type = "l", 
+     main = "Average No. Steps per Interval", xlab = "5 minute Interval", 
+     ylab = "Average No. Steps Taken")
+```
+Which 5-minute interval, on average across all the days in the dataset, 
+contains the maximum number of steps?
+``` {r}
+stepsIntrv[which.max(stepsIntrv[,2]),1]
+head(stepsIntrv)
+```
+The maximum average steps occurred in interval 835.
+
+## Imputing missing values
+```{r}
+# Calculate and report the total number of missing values in the dataset 
+numNas <- sum(is.na(rawData$steps))
+# Find the mean 
+intvMean <- mean(stepsIntrv$steps)
+numNas # get total NAs
+intvMean # get mean steps/interval
+
+```
+There are 2304 missing values in the data set.
+
+Impute the missing values
+```{r}
+# Create a new dataset that is equal to the original dataset but 
+# with the missing data filled in
+newSum <- rawData
+newSum$steps[is.na(newSum$steps)] <- mean(rawData$steps, na.rm=TRUE)
+
+head(newSum)
+```
+Create histogram with new data and get mean and median
+```{r}
+# Make a histogram of the total number of steps taken each day
+newSum1 <- aggregate(newSum$steps ~ newSum$date, FUN=sum)
+colnames(newSum1) <- c("Date", "Steps")
+hist(newSum1$Steps, main="Total No. of Steps Taken Per Day", 
+     sub="Missing Values imputed using mean", 
+     xlab="Total No. Steps", ylab="Frequency", 
+     col=c("blue2", "cyan1", "darkorchid1", "limegreen", "gold1"))
+# mean
+mean(newSum1$Steps, na.rm=TRUE)
+#median
+median(newSum1$Steps, na.rm=TRUE)
+# Examine new data
+head(newSum1)
+```
+Do these values (mean and median) differ from the estimates from the first 
+part of the assignment? *The mean is the same, The median in the raw data*
+*was 10765 and now it is also 10766.19.* *The median changed slightly.*
+What is the impact of imputing missing data on the estimates of the total 
+daily number of steps? *very little impact.*
+
+## Are there differences in activity patterns between weekdays and weekends?
+Create a new factor variable in the dataset with two levels – 
+“weekday” and “weekend” indicating whether a given date is a weekday or 
+weekend day.
+```{r}
+
+newSum$DayType <- weekdays(as.Date(newSum$date))
+
+newSum$DayType <- ifelse(newSum$DayType %in% c('Saturday','Sunday'),'Weekend','Weekday')
+
+head(newSum)
+```
+```{r}
+# Open necessary  packages
+library(lattice) 
+library(plyr)
+# Get data make graph
+newSumInt <- ddply(newSum, .(interval, DayType), summarize, avg = mean(steps))
+xyplot(avg~interval|DayType, data=newSumInt, type="l", layout=c(1,2),
+       main="Average Steps per Interval by Day Type (Weekend or Weekday)", 
+       xlab="Interval", ylab = "Average No. Steps", col="red")
+```
+
+
+
+
+
+
+
